@@ -8,7 +8,28 @@ const jwt = require('jsonwebtoken'); // Dùng để tạo và xác minh Token
 // ------------------------------------
 
 const app = express();
-app.use(cors());
+
+// ===========================================
+// === SỬA CẤU HÌNH CORS TƯỜNG MINH (FIX) ===
+// ===========================================
+
+// ⚠️ THAY THẾ bằng URL Hosting CHÍNH XÁC của bạn
+const allowedOrigins = [
+    'https://iott10-91693.web.app', // Domain Firebase Hosting CỦA BẠN
+    'http://localhost:3000',      // Dùng cho test local (nếu cần)
+    'http://localhost:5000'       // Dùng cho test local (nếu cần)
+];
+
+app.use(cors({
+    origin: allowedOrigins,
+    // Cho phép các phương thức và Header (đặc biệt là Authorization)
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+}));
+
+// ===========================================
+
 app.use(express.json());
 
 // ⚠️ QUAN TRỌNG: Đọc chuỗi bí mật từ biến môi trường trên Render
@@ -61,7 +82,7 @@ const UserModel = mongoose.model('User', UserSchema);
 const authMiddleware = (roles = []) => {
     return (req, res, next) => {
         const authHeader = req.headers.authorization;
-        
+     
         // 1. Kiểm tra Token
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({ message: 'Lỗi 401: Vui lòng cung cấp Token xác thực.' });
@@ -70,7 +91,7 @@ const authMiddleware = (roles = []) => {
         const token = authHeader.split(' ')[1];
 
         try {
-            // 2. Xác minh và Giải mã Token
+             // 2. Xác minh và Giải mã Token
             const decoded = jwt.verify(token, JWT_SECRET);
             req.user = decoded; // Gán thông tin user (id, role) vào req.user
 
@@ -81,7 +102,7 @@ const authMiddleware = (roles = []) => {
 
             next(); // Token hợp lệ và có quyền -> Cho phép tiếp tục
         } catch (err) {
-            // Lỗi hết hạn hoặc Token không hợp lệ
+             // Lỗi hết hạn hoặc Token không hợp lệ
             return res.status(401).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
         }
     };
@@ -120,7 +141,7 @@ mqttClient.on('message', async (topic, message) => {
 
         } catch (err) {
             console.error("❌ Lỗi xử lý tin nhắn MQTT:", err.message);
-        }
+         }
     }
 });
 
@@ -130,8 +151,8 @@ app.post('/api/auth/register', async (req, res) => {
         const { username, password } = req.body;
         if (!username || !password) {
             return res.status(400).json({ message: "Vui lòng cung cấp đầy đủ thông tin." });
-        }
-        
+         }
+         
         // Mongoose sẽ tự động hash mật khẩu nhờ UserSchema.pre('save')
         const newUser = new UserModel({ username, password, role: 'user' }); 
         await newUser.save();
@@ -156,21 +177,21 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         // So sánh mật khẩu đã hash
-        const isMatch = await bcrypt.compare(password, user.password);
+         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
+             return res.status(401).json({ message: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
         }
 
         // Tạo JWT (Payload chứa Role)
-        const token = jwt.sign(
+         const token = jwt.sign(
             { userId: user._id, role: user.role }, 
             JWT_SECRET, 
             { expiresIn: '1h' }
-        );
+         );
 
         // Trả về token và role cho Frontend
         res.json({ token, role: user.role });
-    } catch (err) {
+     } catch (err) {
         res.status(500).json({ message: "Đăng nhập thất bại.", error: err.message });
     }
 });
@@ -194,8 +215,8 @@ app.post('/api/data', authMiddleware(['admin']), async (req, res) => {
 // ⚠️ PHÂN QUYỀN: Chỉ cho phép tài khoản 'admin' và 'user' (tức là mọi người dùng đã đăng nhập)
 app.get('/api/history', authMiddleware(['admin', 'user']), async (req, res) => {
     try {
-         // Sau khi kiểm tra, bạn có thể biết user nào đang gọi API qua req.user
-        // console.log(`User ${req.user.role} dang truy cap lich su`); 
+        // Sau khi kiểm tra, bạn có thể biết user nào đang gọi API qua req.user
+         // console.log(`User ${req.user.role} dang truy cap lich su`); 
         const logs = await LogModel.find().sort({ timestamp: -1 }).limit(20);
         res.json(logs);
     } catch (err) {
