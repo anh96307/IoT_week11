@@ -16,12 +16,21 @@ const app = express();
 // ⚠️ THAY THẾ bằng URL Hosting CHÍNH XÁC của bạn
 const allowedOrigins = [
     'https://iott10-91693.web.app', // Domain Firebase Hosting CỦA BẠN
-    'http://localhost:3000',      // Dùng cho test local (nếu cần)
-    'http://localhost:5000'       // Dùng cho test local (nếu cần)
+    'http://localhost:3000',      
+    'http://localhost:5000'       
 ];
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        // Cho phép các domain trong danh sách, và cả chính Server Render (origin = undefined khi gọi nội bộ)
+        if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+            callback(null, true);
+        } else {
+            // Log ra lỗi CORS khi bị chặn
+            console.log('CORS Blocked:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     // Cho phép các phương thức và Header (đặc biệt là Authorization)
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
